@@ -8,20 +8,22 @@
 
 #import "TRVSURLSessionOperation.h"
 
-#define TRVSKVOBlock(KEYPATH, BLOCK) \
-    [self willChangeValueForKey:KEYPATH]; \
-    BLOCK(); \
-    [self didChangeValueForKey:KEYPATH];
+@interface TRVSURLSessionOperation ()
+@property (nonatomic, assign) BOOL finished;
+@property (nonatomic, assign) BOOL executing;
+@end
 
-@implementation TRVSURLSessionOperation {
-    BOOL _finished;
-    BOOL _executing;
-}
+@implementation TRVSURLSessionOperation
 
-- (instancetype)initWithSession:(NSURLSession *)session URL:(NSURL *)url completionHandler:(void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler {
-    if (self = [super init]) {
+@synthesize finished  = _finished;
+@synthesize executing = _executing;
+
+- (instancetype)initWithSession:(NSURLSession *)session URL:(NSURL *)url completionHandler:(TRVSURLSessionOperationCompletion)completionHandler {
+    self = [super init];
+    if (self) {
         __weak typeof(self) weakSelf = self;
-        _task = [session dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        _task = [session dataTaskWithURL:url
+                       completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             [weakSelf completeOperationWithBlock:completionHandler data:data response:response error:error];
         }];
     }
@@ -29,14 +31,18 @@
 }
 
 - (instancetype)initWithSession:(NSURLSession *)session request:(NSURLRequest *)request completionHandler:(void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler {
-    if (self = [super init]) {
+    self = [super init];
+    if (self) {
         __weak typeof(self) weakSelf = self;
-        _task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        _task = [session dataTaskWithRequest:request
+                           completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             [weakSelf completeOperationWithBlock:completionHandler data:data response:response error:error];
         }];
     }
     return self;
 }
+
+#pragma mark - KVO Overrides
 
 - (void)cancel {
     [super cancel];
@@ -45,13 +51,15 @@
 
 - (void)start {
     if (self.isCancelled) {
-        TRVSKVOBlock(@"isFinished", ^{ _finished = YES; });
-        return;
-    }
-    TRVSKVOBlock(@"isExecuting", ^{
+        [self willChangeValueForKey:NSStringFromSelector(@selector(isFinished))];
+        _finished = YES;
+        [self didChangeValueForKey:NSStringFromSelector(@selector(isFinished))];
+    } else {
+        [self willChangeValueForKey:NSStringFromSelector(@selector(isExecuting))];
         [self.task resume];
         _executing = YES;
-    });
+        [self didChangeValueForKey:NSStringFromSelector(@selector(isExecuting))];
+    }
 }
 
 - (BOOL)isExecuting {
@@ -62,25 +70,27 @@
     return _finished;
 }
 
-- (BOOL)isConcurrent {
+- (BOOL)isAsynchronous {
     return YES;
 }
 
-- (void)completeOperationWithBlock:(void (^)(NSData *, NSURLResponse *, NSError *))block data:(NSData *)data response:(NSURLResponse *)response error:(NSError *)error {
+#pragma mark - Helpers
+
+- (void)completeOperationWithBlock:(TRVSURLSessionOperationCompletion)block data:(NSData *)data response:(NSURLResponse *)response error:(NSError *)error {
     if (!self.isCancelled && block)
         block(data, response, error);
     [self completeOperation];
 }
 
 - (void)completeOperation {
-    [self willChangeValueForKey:@"isFinished"];
-    [self willChangeValueForKey:@"isExecuting"];
-
+    [self willChangeValueForKey:NSStringFromSelector(@selector(isExecuting))];
+    [self willChangeValueForKey:NSStringFromSelector(@selector(isFinished))];
+    
     _executing = NO;
-    _finished = YES;
-
-    [self didChangeValueForKey:@"isExecuting"];
-    [self didChangeValueForKey:@"isFinished"];
+    _finished  = YES;
+    
+    [self didChangeValueForKey:NSStringFromSelector(@selector(isExecuting))];
+    [self didChangeValueForKey:NSStringFromSelector(@selector(isFinished))];
 }
 
 @end

@@ -8,10 +8,12 @@
 
 #import <Foundation/Foundation.h>
 
+typedef void (^TRVSURLSessionOperationCompletion)(NSData *data, NSURLResponse *response, NSError *error);
+
 @interface TRVSURLSessionOperation : NSOperation
 
-- (instancetype)initWithSession:(NSURLSession *)session URL:(NSURL *)url completionHandler:(void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler;
-- (instancetype)initWithSession:(NSURLSession *)session request:(NSURLRequest *)request completionHandler:(void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler;
+- (instancetype)initWithSession:(NSURLSession *)session URL:(NSURL *)url completionHandler:(TRVSURLSessionOperationCompletion)completionHandler;
+- (instancetype)initWithSession:(NSURLSession *)session request:(NSURLRequest *)request completionHandler:(TRVSURLSessionOperationCompletion)completionHandler;
 
 @property (nonatomic, strong, readonly) NSURLSessionDataTask *task;
 
