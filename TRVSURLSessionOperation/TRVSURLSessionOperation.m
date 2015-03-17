@@ -18,14 +18,20 @@
 @synthesize finished  = _finished;
 @synthesize executing = _executing;
 
++ (instancetype)operationWithSession:(NSURLSession *)session request:(NSURLRequest *)request completion:(TRVSURLSessionOperationCompletion)completion {
+    return [[self alloc] initWithSession:session
+                                 request:request
+                       completionHandler:completion];
+}
+
 - (instancetype)initWithSession:(NSURLSession *)session URL:(NSURL *)url completionHandler:(TRVSURLSessionOperationCompletion)completionHandler {
     self = [super init];
     if (self) {
         __weak typeof(self) weakSelf = self;
         _task = [session dataTaskWithURL:url
                        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-            [weakSelf completeOperationWithBlock:completionHandler data:data response:response error:error];
-        }];
+                           [weakSelf completeOperationWithBlock:completionHandler data:data response:response error:error];
+                       }];
     }
     return self;
 }
@@ -36,8 +42,8 @@
         __weak typeof(self) weakSelf = self;
         _task = [session dataTaskWithRequest:request
                            completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-            [weakSelf completeOperationWithBlock:completionHandler data:data response:response error:error];
-        }];
+                               [weakSelf completeOperationWithBlock:completionHandler data:data response:response error:error];
+                           }];
     }
     return self;
 }
